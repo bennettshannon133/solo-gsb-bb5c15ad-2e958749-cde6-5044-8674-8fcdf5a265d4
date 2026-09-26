@@ -37,6 +37,12 @@
       </div>
 
       <div id="results-body">
+        <div class="result-toolbar">
+          <button id="btn-open-planner" class="btn btn-primary" type="button">
+            🧹 清洗规划：为指定过敏原规划最少清洗方案
+          </button>
+        </div>
+
         <h2 class="section-title">🕓 残留传播时间线（按时间逐步推演）</h2>
         <p class="hint">同一分钟内若既有清洗又有批次接触，<b>清洗先执行</b>。点击每条事件可展开事件后的设备残留与继承明细。</p>
         <div id="timeline" class="timeline"></div>
@@ -46,6 +52,43 @@
 
         <h2 class="section-title">🧰 设备最终残留</h2>
         <div id="equipment-results" class="card-grid"></div>
+
+        <h2 class="section-title">🧹 清洗规划（只读试算，不会修改任何记录）</h2>
+        <details id="planner-details" class="form-card planner-card">
+          <summary class="planner-summary">
+            <b>打开清洗规划</b>
+            <span class="hint" style="margin:0">选择一种过敏原与一个或多个目标批次，录入最多 10 个候选清洗位置，
+              系统复用推演引擎搜索新增清洗次数最少的方案。</span>
+          </summary>
+
+          <form id="plan-form">
+            <div class="field">
+              <span class="field-label">① 要消除的过敏原（每个候选位置仅移除该过敏原）</span>
+              <select id="plan-allergen"></select>
+            </div>
+
+            <div class="field">
+              <span class="field-label">② 目标批次（可多选；要求规划后这些批次最终均不含该过敏原）</span>
+              <div id="plan-targets" class="check-list"></div>
+            </div>
+
+            <div class="field">
+              <div class="field-label-row">
+                <span class="field-label">③ 候选清洗位置（设备 + 时间，最多 10 个，序号用于并列时的字典序裁决）</span>
+                <button type="button" class="btn btn-small" id="plan-candidate-add">＋ 添加候选位置</button>
+              </div>
+              <p class="hint">同一分钟既有清洗又有批次接触时，清洗先执行；位置可以录入在批次步骤之前或之后。</p>
+              <div id="plan-candidates" class="steps"></div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary" id="plan-run">生成清洗方案</button>
+              <button type="button" class="btn" id="plan-reset">清空重填</button>
+            </div>
+          </form>
+
+          <div id="plan-result"></div>
+        </details>
       </div>
     </section>
 

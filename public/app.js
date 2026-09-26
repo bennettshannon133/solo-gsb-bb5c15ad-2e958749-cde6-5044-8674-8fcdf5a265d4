@@ -644,7 +644,218 @@ function renderAll() {
   renderChips($('#batch-allergens'), state.knownAllergens, batchUI.selected, batchUI.extras);
   renderSteps();
   renderCleaningFormParts();
+  // 记录可能已增删，刷新规划表单选项并让旧规划结果失效（避免与新记录不符）
+  $('#plan-result').innerHTML = '';
+  renderPlanParts(false);
 }
+
+/* ================= 清洗规划 ================= */
+
+const planUI = { allergen: '', targets: new Set(), candidates: [] };
+
+function resetPlanForm() {
+  planUI.allergen = '';
+  planUI.targets = new Set();
+  planUI.candidates = [];
+  $('#plan-result').innerHTML = '';
+  renderPlanParts(true);
+}
+
+/** 同步规划表单的下拉 / 勾选 / 候选行（保留已填内容，记录变动后清掉失效项）。 */
+function renderPlanParts(ensureRow) {
+  renderPlanAllergen();
+  renderPlanTargets();
+  renderPlanCandidates(ensureRow);
+}
+
+function renderPlanAllergen() {
+  const sel = $('#plan-allergen');
+  if (!state.knownAllergens.length) {
+    sel.innerHTML = '<option value="">（暂无可选过敏原）</option>';
+    planUI.allergen = '';
+    return;
+  }
+  if (!state.knownAllergens.includes(planUI.allergen)) {
+    planUI.allergen = state.knownAllergens[0];
+  }
+  sel.innerHTML = state.knownAllergens.map((a) =>
+    `<option value="${esc(a)}"${a === planUI.allergen ? ' selected' : ''}>${esc(a)}</option>`).join('');
+}
+
+function renderPlanTargets() {
+  const wrap = $('#plan-targets');
+  if (!state.trace.batches.length) {
+    wrap.innerHTML = '<p class="hint">暂无可选批次。</p>';
+    planUI.targets.clear();
+    return;
+  }
+  const liveIds = new Set(state.trace.batches.map((b) => b.batchId));
+  for (const id of [...planUI.targets]) if (!liveIds.has(id)) planUI.targets.delete(id);
+
+  wrap.innerHTML = state.trace.batches.map((b) => {
+    const checked = planUI.targets.has(b.batchId) ? ' checked' : '';
+    const recipeBlocked = planUI.allergen && b.recipeAllergens.includes(planUI.allergen);
+    const carried = planUI.allergen && b.finalAllergens.includes(planUI.allergen);
+    const badge = recipeBlocked
+      ? `<span class="tag tag-danger">配方自带该过敏原，无法靠清洗消除</span>`
+      : carried
+        ? `<span class="tag tag-inherit">当前最终含该过敏原</span>`
+        : `<span class="tag tag-muted">当前不含该过敏原</span>`;
+    return `<label class="check-item">
+      <input type="checkbox" value="${esc(b.batchId)}"${checked} />
+      <span class="check-name">📦 ${esc(b.name)} <span class="record-meta">${fmtTime(b.time)}</span></span>
+      ${badge}
+    </label>`;
+  }).join('');
+
+  wrap.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+    cb.addEventListener('change', () => {
+      cb.checked ? planUI.targets.add(cb.value) : planUI.targets.delete(cb.value);
+    });
+  });
+}
+
+function renderPlanCandidates(ensureRow) {
+  const wrap = $('#plan-candidates');
+  $('#plan-candidate-add').disabled = planUI.candidates.length >= 10;
+  if (!state.data.equipment.length) {
+    wrap.innerHTML = '<p class="hint">请先到「设备管理」创建设备。</p>';
+    return;
+  }
+  // 记录变动后剔除引用已删除设备的行
+  const eqIds = new Set(state.data.equipment.map((eq) => eq.id));
+  planUI.candidates = planUI.candidates.filter((c) => eqIds.has(c.equipmentId));
+  if (ensureRow && planUI.candidates.length === 0) {
+    planUI.candidates.push({
+      equipmentId: state.data.equipment[0].id,
+      time: nowInput(),
+    });
+  }
+
+  const options = (cur) => state.data.equipment
+    .map((eq) => `<option value="${esc(eq.id)}"${eq.id === cur ? ' selected' : ''}>${esc(eq.name)}</option>`)
+    .join('');
+
+  wrap.innerHTML = planUI.candidates.map((c, i) => `
+    <div class="step-row" data-idx="${i}">
+      <span class="step-order" title="候选输入序号（从 1 开始，并列时按序号列表字典序裁决）">${i + 1}</span>
+      <select data-f="equipmentId">${options(c.equipmentId)}</select>
+      <input type="datetime-local" step="60" data-f="time" value="${esc(c.time || '')}" required />
+      <button type="button" class="btn btn-small" data-act="up" ${i === 0 ? 'disabled' : ''}>↑</button>
+      <button type="button" class="btn btn-small" data-act="down" ${i === planUI.candidates.length - 1 ? 'disabled' : ''}>↓</button>
+      <button type="button" class="btn btn-small btn-danger" data-act="del">删</button>
+    </div>
+  `).join('');
+
+  wrap.querySelectorAll('.step-row').forEach((row) => {
+    const i = +row.dataset.idx;
+    row.querySelectorAll('[data-f]').forEach((inp) => {
+      inp.addEventListener('input', () => { planUI.candidates[i][inp.dataset.f] = inp.value; });
+    });
+    row.querySelector('[data-act="del"]').addEventListener('click', () => {
+      planUI.candidates.splice(i, 1);
+      renderPlanCandidates(false);
+    });
+    row.querySelector('[data-act="up"]').addEventListener('click', () => {
+      [planUI.candidates[i - 1], planUI.candidates[i]] = [planUI.candidates[i], planUI.candidates[i - 1]];
+      renderPlanCandidates(false);
+    });
+    row.querySelector('[data-act="down"]').addEventListener('click', () => {
+      [planUI.candidates[i + 1], planUI.candidates[i]] = [planUI.candidates[i], planUI.candidates[i + 1]];
+      renderPlanCandidates(false);
+    });
+  });
+}
+
+$('#plan-allergen').addEventListener('change', (e) => {
+  planUI.allergen = e.target.value;
+  renderPlanTargets();
+});
+
+$('#plan-candidate-add').addEventListener('click', () => {
+  if (planUI.candidates.length >= 10) return toast('候选清洗位置最多 10 个', true);
+  if (!state.data.equipment.length) return toast('请先创建设备', true);
+  const prev = planUI.candidates[planUI.candidates.length - 1];
+  planUI.candidates.push({
+    equipmentId: prev ? prev.equipmentId : state.data.equipment[0].id,
+    time: nowInput(),
+  });
+  renderPlanCandidates(false);
+});
+
+$('#btn-open-planner').addEventListener('click', () => {
+  const d = $('#planner-details');
+  d.open = true;
+  d.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+$('#plan-reset').addEventListener('click', () => resetPlanForm());
+
+function allergenTags(list, recipeSet, highlight) {
+  if (!list || !list.length) return '<span class="tag tag-muted">无过敏原</span>';
+  return list.map((a) => {
+    const cls = a === highlight
+      ? 'tag-danger'
+      : recipeSet.includes(a) ? 'tag-recipe' : 'tag-inherit';
+    return `<span class="tag ${cls}">${esc(a)}</span>`;
+  }).join('');
+}
+
+function renderPlanResult(r) {
+  const wrap = $('#plan-result');
+
+  const banner = r.feasible
+    ? `<div class="plan-banner ok">${r.empty ? '✅' : '🧹'} ${esc(r.message)}</div>`
+    : `<div class="plan-banner bad">⚠️ ${esc(r.message)}</div>`;
+
+  const positionsHtml = r.feasible && !r.empty
+    ? `<h4>选中的 ${r.positions.length} 个清洗位置（均只移除「${esc(r.allergen)}」）</h4>
+       <ol class="plan-positions">
+         ${r.positions.map((p) => `<li><b>#${p.index + 1}</b> ${fmtTime(p.time)} · 设备「${esc(p.equipmentName)}」</li>`).join('')}
+       </ol>`
+    : r.feasible
+      ? '<h4>选中的清洗位置</h4><p class="hint">空方案：无需新增任何清洗。</p>'
+      : '<h4>选中的清洗位置</h4><p class="hint">无可行方案。</p>';
+
+  const targetBadge = (t) => {
+    if (t.recipeBlocked) return '<span class="tag tag-danger">配方自带，清洗无法消除</span>';
+    if (!t.containsBefore) return '<span class="tag tag-muted">原本即不含，无需处理</span>';
+    if (!t.containsAfter) return '<span class="tag tag-clean">该过敏原已消除 ✓</span>';
+    return '<span class="tag tag-danger">规划后仍含该过敏原 ✗</span>';
+  };
+
+  const targetsHtml = `<h4>目标批次规划前后的过敏原集合</h4>
+    <div class="plan-targets">
+      ${r.targets.map((t) => `
+        <div class="plan-target">
+          <div class="plan-target-name">📦 ${esc(t.name)} <span class="record-meta">${fmtTime(t.time)}</span> ${targetBadge(t)}</div>
+          <div class="plan-diff"><span class="lbl">规划前：</span>${allergenTags(t.before, t.recipeAllergens, r.allergen)}</div>
+          <div class="plan-diff"><span class="lbl">规划后：</span>${allergenTags(t.after, t.recipeAllergens, r.allergen)}</div>
+        </div>`).join('')}
+    </div>`;
+
+  wrap.innerHTML = `${banner}${positionsHtml}${targetsHtml}`;
+}
+
+$('#plan-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  guard(async () => {
+    if (!planUI.allergen) throw new Error('请选择要消除的过敏原');
+    if (!planUI.targets.size) throw new Error('请至少选择一个目标批次');
+    if (planUI.candidates.some((c) => !c.time)) {
+      throw new Error('每个候选清洗位置都需要填写时间（不需要候选位置时可全部删除）');
+    }
+    const payload = {
+      allergen: planUI.allergen,
+      batchIds: [...planUI.targets],
+      candidates: planUI.candidates.map((c) => ({ equipmentId: c.equipmentId, time: c.time })),
+    };
+    const r = await api('POST', '/api/cleaning-plans', payload);
+    renderPlanResult(r);
+    if (!r.feasible) toast('无可行清洗方案，详见规划结果', true);
+    else toast(r.empty ? '无需新增清洗（空方案）' : `已生成 ${r.cleaningCount} 次清洗的最优方案`);
+  });
+});
 
 /* ================= 演示数据 / 重推演 ================= */
 
@@ -665,4 +876,6 @@ $('#btn-recompute').addEventListener('click', () => loadState(true));
 
 resetBatchForm();
 resetCleaningForm();
-loadState().catch((err) => toast('加载失败：' + err.message, true));
+loadState()
+  .then(() => resetPlanForm())
+  .catch((err) => toast('加载失败：' + err.message, true));

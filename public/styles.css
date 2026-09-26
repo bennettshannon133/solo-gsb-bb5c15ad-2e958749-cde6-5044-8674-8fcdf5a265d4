@@ -275,6 +275,62 @@ details.source-details > summary::-webkit-details-marker { display: none; }
 details.source-details > summary::before { content: "▸"; color: var(--muted); font-size: 11px; }
 details.source-details[open] > summary::before { content: "▾"; }
 
+/* ---------- 清洗规划 ---------- */
+.result-toolbar { margin: 16px 0 0; display: flex; gap: 10px; flex-wrap: wrap; }
+.planner-card { padding: 0; }
+.planner-summary {
+  cursor: pointer; list-style: none;
+  padding: 14px 18px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.planner-summary::-webkit-details-marker { display: none; }
+.planner-summary::before { content: "▸"; color: var(--muted); font-size: 12px; margin-right: 6px; }
+details[open] .planner-summary::before { content: "▾"; }
+.planner-summary b { font-size: 14px; margin-left: -2px; }
+#planner-details[open] .planner-summary { border-bottom: 1px solid var(--border); }
+#plan-form, #plan-result { padding: 16px 18px 4px; }
+#plan-result { padding-top: 8px; padding-bottom: 14px; }
+#plan-result:empty { display: none; }
+#plan-allergen { max-width: 360px; }
+
+.check-list { display: flex; flex-direction: column; gap: 6px; }
+.check-item {
+  display: flex; align-items: center; gap: 10px;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+.check-item:hover { background: #f1f5f9; }
+.check-item input[type="checkbox"] { flex: 0 0 auto; }
+.check-item .check-name { flex: 1; min-width: 0; }
+
+.plan-banner {
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+.plan-banner.ok { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; }
+.plan-banner.bad { background: #fef2f2; border: 1px solid #fecaca; color: var(--danger); }
+
+#plan-result h4 { font-size: 13px; margin: 12px 0 8px; }
+.plan-positions { margin: 0 0 4px; padding-left: 20px; font-size: 13px; }
+.plan-positions li { padding: 2px 0; }
+
+.plan-targets { display: flex; flex-direction: column; gap: 8px; }
+.plan-target {
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+}
+.plan-target-name { font-weight: 600; margin-bottom: 4px; }
+.plan-diff { padding: 1px 0; }
+.plan-diff .lbl { color: var(--muted); margin-right: 4px; }
+
 /* ---------- toast ---------- */
 .toast {
   position: fixed;

@@ -141,6 +141,59 @@ function normalizeCleaningInput(body, data) {
   };
 }
 
+/** 校验并规范化清洗规划请求（只读试算，不落库）。 */
+function normalizeCleaningPlanInput(body, data) {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    throw new HttpError(400, '请求体必须是 JSON 对象');
+  }
+  const allergen = cleanText(body.allergen, '过敏原', 50);
+
+  if (!Array.isArray(body.batchIds)) {
+    throw new HttpError(400, '目标批次必须是数组');
+  }
+  if (body.batchIds.length === 0) {
+    throw new HttpError(400, '请至少选择一个目标批次');
+  }
+  if (body.batchIds.length > 100) {
+    throw new HttpError(400, '目标批次数量过多');
+  }
+  const batchIds = [];
+  for (const id of body.batchIds) {
+    const v = cleanText(id, '目标批次 ID', 100);
+    if (!data.batches.some((b) => b.id === v)) {
+      throw new HttpError(400, `目标批次不存在：${v}`);
+    }
+    if (batchIds.includes(v)) {
+      throw new HttpError(400, '目标批次重复选择');
+    }
+    batchIds.push(v);
+  }
+
+  if (!Array.isArray(body.candidates)) {
+    throw new HttpError(400, '候选清洗位置必须是数组');
+  }
+  if (body.candidates.length > 10) {
+    throw new HttpError(400, '候选清洗位置最多 10 个');
+  }
+  const eqIds = new Set(data.equipment.map((eq) => eq.id));
+  const candidates = body.candidates.map((c, i) => {
+    const where = `第 ${i + 1} 个候选位置`;
+    if (!c || typeof c !== 'object' || Array.isArray(c)) {
+      throw new HttpError(400, `${where} 格式不合法`);
+    }
+    const equipmentId = cleanText(c.equipmentId, `${where} 的设备`, 100);
+    if (!eqIds.has(equipmentId)) {
+      throw new HttpError(400, `${where} 选择了不存在的设备`);
+    }
+    return {
+      equipmentId,
+      time: parseLocalTime(c.time, `${where} 的时间`),
+    };
+  });
+
+  return { allergen, batchIds, candidates };
+}
+
 module.exports = {
   HttpError,
   parseLocalTime,
@@ -148,5 +201,6 @@ module.exports = {
   normalizeAllergenList,
   normalizeBatchInput,
   normalizeCleaningInput,
+  normalizeCleaningPlanInput,
   knownAllergens,
 };
