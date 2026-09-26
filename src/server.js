@@ -5,12 +5,14 @@ const express = require('express');
 
 const { JsonStore, newId } = require('./store');
 const { trace } = require('./trace');
+const { planCleaning } = require('./planner');
 const { buildDemoData } = require('./demo');
 const {
   HttpError,
   cleanText,
   normalizeBatchInput,
   normalizeCleaningInput,
+  normalizeCleaningPlanInput,
   knownAllergens,
 } = require('./validation');
 
@@ -177,6 +179,18 @@ app.delete('/api/cleanings/:id', async (req, res, next) => {
       d.cleanings.splice(idx, 1);
     });
     res.json(buildState());
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---- 清洗规划（只读试算，绝不写入或修改原始记录） -----------------------
+
+app.post('/api/cleaning-plans', (req, res, next) => {
+  try {
+    const data = store.read();
+    const input = normalizeCleaningPlanInput(req.body || {}, data);
+    res.json({ plan: planCleaning(data, input) });
   } catch (err) {
     next(err);
   }

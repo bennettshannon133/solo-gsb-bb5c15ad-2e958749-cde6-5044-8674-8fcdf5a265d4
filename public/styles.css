@@ -275,6 +275,44 @@ details.source-details > summary::-webkit-details-marker { display: none; }
 details.source-details > summary::before { content: "▸"; color: var(--muted); font-size: 11px; }
 details.source-details[open] > summary::before { content: "▾"; }
 
+/* ---------- 清洗规划 ---------- */
+.plan-card { margin-top: 10px; }
+.plan-result { margin-top: 16px; border-top: 1px dashed var(--border); padding-top: 14px; }
+.plan-banner {
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+.plan-banner b { display: block; margin-bottom: 2px; font-size: 14px; }
+.plan-ok { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; }
+.plan-empty { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+.plan-fail { background: #fef2f2; border: 1px solid #fecaca; color: var(--danger); }
+.plan-block { margin-top: 12px; }
+.plan-block-title { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.plan-positions { margin: 0; padding-left: 22px; }
+.plan-positions li { padding: 2px 0; font-size: 13px; }
+.plan-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  background: #fbfcfe;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.plan-table th, .plan-table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.plan-table th { color: var(--muted); font-weight: 600; background: #f8fafc; }
+.plan-table tr:last-child td { border-bottom: none; }
+.plan-batch-name { white-space: nowrap; font-weight: 600; }
+.plan-batch-time { font-weight: 400; color: var(--muted); font-size: 11px; margin-top: 2px; }
+.plan-arrow { color: var(--muted); text-align: center; width: 24px; }
+
 /* ---------- toast ---------- */
 .toast {
   position: fixed;

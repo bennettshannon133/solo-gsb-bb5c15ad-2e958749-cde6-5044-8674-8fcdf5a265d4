@@ -44,6 +44,38 @@
         <h2 class="section-title">📦 各批最终过敏原</h2>
         <div id="batch-results" class="card-grid"></div>
 
+        <h2 class="section-title">🧹 清洗规划（只读试算，不会改动任何记录）</h2>
+        <div class="form-card plan-card">
+          <p class="hint">
+            选择<b>一种过敏原</b>与<b>一个或多个目标批次</b>，录入<b>最多 10 个候选清洗位置</b>（设备 + 时间，可附备注）。
+            系统会在候选位置的子集中搜索，复用上方推演规则（先继承后留渍、清洗只移除所选过敏原、同一分钟清洗先于接触），
+            返回使所有目标批次最终不含该过敏原且<b>清洗次数最少</b>的方案；并列时按候选输入序号的字典序选择。
+            配方自带的过敏原无法被清洗消除；本来就干净时返回空方案；候选位置都无法满足时明确提示无解。
+          </p>
+          <form id="plan-form">
+            <div class="field">
+              <span class="field-label">① 选择需要清除的过敏原（单选）</span>
+              <div id="plan-allergen" class="chips-picker"></div>
+            </div>
+            <div class="field">
+              <span class="field-label">② 选择目标批次（可多选，要求最终均不含该过敏原）</span>
+              <div id="plan-targets" class="chips-picker"></div>
+            </div>
+            <div class="field">
+              <div class="field-label-row">
+                <span class="field-label">③ 候选清洗位置（最多 10 个，序号即并列时的字典序优先级）</span>
+                <button type="button" class="btn btn-small" id="plan-candidate-add">＋ 添加候选位置</button>
+              </div>
+              <div id="plan-candidates" class="steps"></div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary" id="plan-run">生成清洗规划</button>
+              <button type="button" class="btn" id="plan-reset">清空重填</button>
+            </div>
+          </form>
+          <div id="plan-result" class="plan-result hidden"></div>
+        </div>
+
         <h2 class="section-title">🧰 设备最终残留</h2>
         <div id="equipment-results" class="card-grid"></div>
       </div>
